@@ -1,0 +1,8 @@
+{
+  "name": "laser-face",
+  "version": "1.0.0",
+  "description": "Laser Face",
+  "scripts": {
+    "start": "npx http-server . -o"
+  }
+}
