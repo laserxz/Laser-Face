@@ -2,148 +2,554 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Face → OSC Bridge v4</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LaserFace — OSC Bridge</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{background:#111;color:#eee;font-family:'Courier New',monospace;padding:14px;display:flex;flex-direction:column;gap:10px;max-width:980px}
-h1{font-size:13px;color:#555;letter-spacing:3px;text-transform:uppercase}
-h2{font-size:10px;color:#555;letter-spacing:2px;text-transform:uppercase;margin-bottom:5px}
-.card{background:#181818;border:1px solid #252525;border-radius:4px;padding:10px;display:flex;flex-direction:column;gap:7px}
-.row{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
-button{background:#222;color:#eee;border:1px solid #444;padding:5px 12px;font-family:inherit;font-size:11px;cursor:pointer;border-radius:3px}
-button:hover{background:#2c2c2c}
-button.pri{background:#1a3050;border-color:#4af;color:#4af}
-button.pri:hover{background:#1f3a60}
-button.red{background:#3a1414;border-color:#f44;color:#f44}
-button:disabled{opacity:.35;cursor:default}
-select,input[type=text],input[type=number]{background:#1e1e1e;color:#eee;border:1px solid #444;padding:4px 7px;font-family:inherit;font-size:11px;border-radius:3px}
-.badge{font-size:10px;padding:2px 8px;border-radius:10px;font-weight:bold;letter-spacing:.5px}
-.g{background:#163016;color:#4f8;border:1px solid #2d7a2d}
-.r{background:#3a1414;color:#f44;border:1px solid #7a2d2d}
-.a{background:#3a2e14;color:#fa4;border:1px solid #7a5a2d}
-.tabs{display:flex;gap:0}
-.tab{flex:1;padding:9px;text-align:center;font-size:11px;cursor:pointer;background:#161616;border:1px solid #2a2a2a;letter-spacing:1px;text-transform:uppercase}
-.tab:first-child{border-radius:4px 0 0 4px}.tab:last-child{border-radius:0 4px 4px 0}
-.tab.on{background:#1e1e1e;color:#4af;border-color:#4af}
-.panel{display:none;flex-direction:column;gap:9px}.panel.on{display:flex}
-canvas{display:block;border:1px solid #2a2a2a;border-radius:4px;max-width:100%}
-.vid-wrap{position:relative;display:inline-block}
-.vid-ovr{position:absolute;bottom:6px;left:6px;font-size:11px;color:#fa0;background:#0009;padding:2px 7px;border-radius:3px;pointer-events:none}
-.pbar{background:#1e1e1e;border-radius:3px;height:16px;overflow:hidden;position:relative}
-.pfill{height:100%;background:linear-gradient(90deg,#2af,#48f);border-radius:3px;width:0%}
-.plbl{position:absolute;inset:0;text-align:center;font-size:10px;line-height:16px}
-.pgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:5px}
-.pg{background:#161616;border:1px solid #1e1e1e;border-radius:3px;padding:4px 6px}
-.pgn{font-size:9px;color:#555;text-transform:uppercase;margin-bottom:2px}
-.pgb{background:#252525;height:5px;border-radius:1px;overflow:hidden}
-.pgf{height:100%;border-radius:1px;width:0%;transition:width 50ms}
-.pgv{font-size:9px;color:#3a3a3a;text-align:right;margin-top:1px}
-.tcbar{display:flex;align-items:center;gap:8px;background:#141420;border:1px solid #22224a;border-radius:4px;padding:8px 11px;flex-wrap:wrap}
-.tclbl{font-size:11px;color:#68a;font-weight:bold;letter-spacing:1px;min-width:60px}
-.tcdig{font-size:20px;color:#48f;font-variant-numeric:tabular-nums;letter-spacing:2px;min-width:170px}
-.tcst{font-size:10px;color:#444;min-width:70px}
-.osc-cfg{background:#141818;border:1px solid #1e2a2a;border-radius:4px;padding:8px 10px;display:flex;flex-direction:column;gap:6px}
-.osc-row{display:flex;align-items:center;gap:6px;font-size:11px}
-.osc-lbl{color:#4a8a5a;min-width:130px;font-size:10px;letter-spacing:.5px}
-.osc-addr{color:#8af;font-size:10px;font-family:'Courier New';background:#0a1a0a;border:1px solid #1a3a1a;padding:2px 6px;border-radius:2px;flex:1;min-width:300px}
-#countdown{font-size:64px;color:#4af;text-align:center;padding:20px;display:none;font-variant-numeric:tabular-nums}
-.tr-row{display:flex;align-items:center;gap:4px;padding:3px 0;border-bottom:1px solid #1e1e1e}
-#statusbar{font-size:11px;color:#fa0;min-height:18px;padding:2px 0}
+:root {
+  --bg:       #0a0a0c;
+  --bg1:      #0f0f12;
+  --bg2:      #141418;
+  --bg3:      #1a1a20;
+  --border:   #242430;
+  --border2:  #2e2e3c;
+  --cyan:     #00d4ff;
+  --cyan-dim: #0088aa;
+  --amber:    #ffaa00;
+  --amber-dim:#885500;
+  --green:    #00ff88;
+  --green-dim:#006633;
+  --red:      #ff3344;
+  --red-dim:  #661122;
+  --white:    #f0f0f8;
+  --grey:     #888898;
+  --grey2:    #555565;
+  --font-ui:  'Rajdhani', sans-serif;
+  --font-mono:'JetBrains Mono', monospace;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--white);
+  font-family: var(--font-ui);
+  font-size: 15px;
+  font-weight: 500;
+  min-height: 100vh;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 1100px;
+}
+
+/* ── HEADER ── */
+.header {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+.header-title {
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: var(--white);
+}
+.header-title span { color: var(--cyan); }
+.header-sub {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--grey2);
+  letter-spacing: 1px;
+}
+
+/* ── CARDS ── */
+.card {
+  background: var(--bg1);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.card-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--grey2);
+  margin-bottom: 2px;
+}
+
+/* ── ROW ── */
+.row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* ── BUTTONS ── */
+button {
+  font-family: var(--font-ui);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  padding: 9px 18px;
+  border-radius: 4px;
+  border: 1px solid var(--border2);
+  background: var(--bg2);
+  color: var(--grey);
+  cursor: pointer;
+  transition: all 0.12s;
+  white-space: nowrap;
+}
+button:hover { background: var(--bg3); color: var(--white); border-color: var(--grey); }
+button:disabled { opacity: 0.3; cursor: default; }
+
+button.pri {
+  background: rgba(0,212,255,0.08);
+  border-color: var(--cyan-dim);
+  color: var(--cyan);
+}
+button.pri:hover { background: rgba(0,212,255,0.16); border-color: var(--cyan); }
+
+button.go {
+  background: rgba(0,255,136,0.08);
+  border-color: var(--green-dim);
+  color: var(--green);
+  font-size: 16px;
+  padding: 11px 24px;
+}
+button.go:hover { background: rgba(0,255,136,0.16); border-color: var(--green); }
+
+button.red {
+  background: rgba(255,51,68,0.08);
+  border-color: var(--red-dim);
+  color: var(--red);
+}
+button.red:hover { background: rgba(255,51,68,0.16); border-color: var(--red); }
+
+button.sm {
+  font-size: 12px;
+  padding: 5px 12px;
+  letter-spacing: 1px;
+}
+
+/* ── INPUTS ── */
+input[type=text], input[type=number], select {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  padding: 8px 10px;
+  background: var(--bg);
+  border: 1px solid var(--border2);
+  border-radius: 4px;
+  color: var(--white);
+  outline: none;
+  transition: border-color 0.12s;
+}
+input[type=text]:focus,
+input[type=number]:focus,
+select:focus { border-color: var(--cyan-dim); }
+select { cursor: pointer; }
+select option { background: var(--bg2); }
+
+/* ── BADGES ── */
+.badge {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  padding: 4px 10px;
+  border-radius: 3px;
+  text-transform: uppercase;
+}
+.badge.g { background: rgba(0,255,136,0.1); color: var(--green); border: 1px solid var(--green-dim); box-shadow: 0 0 8px rgba(0,255,136,0.2); }
+.badge.r { background: rgba(255,51,68,0.1);  color: var(--red);   border: 1px solid var(--red-dim); }
+.badge.a { background: rgba(255,170,0,0.1);  color: var(--amber); border: 1px solid var(--amber-dim); }
+
+/* ── CONNECTION BAR ── */
+.conn-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.conn-divider { width: 1px; height: 28px; background: var(--border2); margin: 0 4px; }
+
+/* ── OSC CONFIG ── */
+.osc-cfg {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.osc-cfg-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.osc-cfg-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--cyan-dim);
+}
+.osc-panel { display: none; flex-direction: column; gap: 6px; margin-top: 4px; }
+.osc-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+}
+.osc-lbl {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  color: var(--grey);
+  min-width: 160px;
+}
+.osc-addr {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--cyan);
+  background: rgba(0,212,255,0.05);
+  border: 1px solid rgba(0,212,255,0.15);
+  padding: 3px 8px;
+  border-radius: 3px;
+  flex: 1;
+}
+.osc-hint { font-size: 11px; color: var(--grey2); }
+
+/* ── TC BAR ── */
+.tc-bar {
+  background: var(--bg1);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--cyan-dim);
+  border-radius: 6px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.tc-label {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--cyan-dim);
+  min-width: 80px;
+}
+.tc-display {
+  font-family: var(--font-mono);
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--cyan);
+  letter-spacing: 3px;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 0 20px rgba(0,212,255,0.4);
+  min-width: 200px;
+}
+.tc-status {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--grey2);
+  letter-spacing: 1px;
+}
+
+/* ── TABS ── */
+.tabs {
+  display: flex;
+  gap: 2px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 3px;
+}
+.tab {
+  flex: 1;
+  padding: 10px;
+  text-align: center;
+  font-family: var(--font-ui);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  cursor: pointer;
+  border-radius: 4px;
+  color: var(--grey2);
+  transition: all 0.15s;
+}
+.tab:hover { color: var(--white); background: var(--bg2); }
+.tab.on {
+  background: var(--bg3);
+  color: var(--cyan);
+  box-shadow: inset 0 0 0 1px var(--cyan-dim);
+}
+
+/* ── PANELS ── */
+.panel { display: none; flex-direction: column; gap: 12px; }
+.panel.on { display: flex; }
+
+/* ── SECTION HEADING ── */
+h2 {
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--grey2);
+  margin-bottom: 2px;
+}
+
+/* ── CANVAS ── */
+canvas {
+  display: block;
+  border: 1px solid var(--border2);
+  border-radius: 6px;
+  max-width: 100%;
+}
+.vid-wrap { position: relative; display: inline-block; }
+.vid-ovr {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: var(--amber);
+  background: rgba(0,0,0,0.7);
+  padding: 4px 10px;
+  border-radius: 3px;
+  pointer-events: none;
+}
+
+/* ── PROGRESS BAR ── */
+.pbar {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  height: 24px;
+  overflow: hidden;
+  position: relative;
+}
+.pfill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--cyan-dim), var(--cyan));
+  border-radius: 3px;
+  width: 0%;
+  transition: width 0.1s;
+}
+.plbl {
+  position: absolute;
+  inset: 0;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 24px;
+  color: var(--white);
+  font-weight: 500;
+}
+
+/* ── PARAM GRID ── */
+.pgrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+.pg {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 7px 9px;
+}
+.pgn {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--grey2);
+  margin-bottom: 5px;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.pgn span { font-size: 10px; color: var(--grey2); opacity: 0.5; font-weight: 400; }
+.pgb {
+  background: var(--bg2);
+  height: 6px;
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 3px;
+}
+.pgf {
+  height: 100%;
+  border-radius: 2px;
+  width: 0%;
+  transition: width 50ms;
+}
+.pgv {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--grey2);
+  text-align: right;
+}
+
+/* ── TRIGGER ROWS ── */
+.tr-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+/* ── COUNTDOWN ── */
+#countdown {
+  font-family: var(--font-mono);
+  font-size: 96px;
+  font-weight: 700;
+  color: var(--cyan);
+  text-align: center;
+  padding: 24px;
+  display: none;
+  text-shadow: 0 0 40px rgba(0,212,255,0.6);
+  letter-spacing: 8px;
+}
+
+/* ── STATUS BAR ── */
+#statusbar {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--amber);
+  letter-spacing: 0.5px;
+  min-height: 20px;
+  padding: 4px 0;
+  border-top: 1px solid var(--border);
+}
+
+.data-info {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--green);
+  letter-spacing: 0.5px;
+}
+
+.hint {
+  font-size: 13px;
+  color: var(--grey2);
+  line-height: 1.6;
+}
+.hint b { color: var(--cyan); font-weight: 600; }
 </style>
 </head>
 <body>
 
-<h1>Face → OSC Bridge <span style="color:#252525">v4</span></h1>
+<!-- HEADER -->
+<div class="header">
+  <div class="header-title">Laser<span>Face</span></div>
+  <div class="header-sub">MEDIAPIPE → OSC → PANGOLIN BEYOND  //  v4</div>
+</div>
 
 <!-- CONNECTION -->
 <div class="card">
-  <div class="row">
+  <div class="card-label">Connection</div>
+  <div class="conn-bar">
     <span class="badge r" id="osc-badge">OSC</span>
-    <input type="text" id="osc-url" value="ws://localhost:8081" style="flex:1;min-width:160px">
-    <button id="btn-osc-connect">Connect</button>
-    <span style="color:#2a2a2a">|</span>
+    <input type="text" id="osc-url" value="ws://localhost:8081" style="flex:1;min-width:180px">
+    <button class="pri" id="btn-osc-connect">Connect</button>
+    <div class="conn-divider"></div>
     <span class="badge r" id="midi-badge">MIDI</span>
-    <select id="midiOut" style="flex:1;min-width:120px"><option value="">— no MIDI —</option></select>
+    <select id="midiOut" style="flex:1;min-width:140px"><option value="">— no MIDI output —</option></select>
   </div>
 </div>
 
 <!-- OSC ADDRESS CONFIG -->
 <div class="osc-cfg">
-  <div class="row" style="margin-bottom:2px">
-    <span style="font-size:10px;color:#4a8;letter-spacing:2px;text-transform:uppercase">Beyond OSC Addresses</span>
-    <span style="font-size:9px;color:#333;margin-left:6px">— native /beyond/ direct control, no PangoScript needed</span>
-    <button id="btn-show-osc" style="margin-left:auto;font-size:10px;padding:2px 8px">▼ Show/Edit</button>
+  <div class="osc-cfg-header">
+    <div class="osc-cfg-title">Beyond OSC Addresses</div>
+    <span class="hint" style="font-size:12px">— native /beyond/ direct control, no PangoScript needed</span>
+    <button class="sm" id="btn-show-osc" style="margin-left:auto">▼ Configure</button>
   </div>
-  <div id="osc-addr-panel" style="display:none;flex-direction:column;gap:4px">
-    <!-- Zone name for rotation -->
+  <div class="osc-panel" id="osc-addr-panel">
     <div class="osc-row">
-      <span class="osc-lbl">Zone name (rotation)</span>
-      <input type="text" id="cfg-zone" value="FACE" style="width:100px">
-      <span style="font-size:9px;color:#444">→ /beyond/zone/FACE/livecontrol/angley  etc.</span>
+      <span class="osc-lbl">Zone name</span>
+      <input type="text" id="cfg-zone" value="FACE" style="width:110px">
+      <span class="osc-hint">→ /beyond/zone/FACE/livecontrol/angley etc.</span>
     </div>
-    <!-- Cue page index for each part -->
     <div class="osc-row">
       <span class="osc-lbl">Cue page index</span>
-      <input type="number" id="cfg-page" value="0" min="0" max="99" style="width:52px">
-      <span style="font-size:9px;color:#444">— page 0 = first page in Beyond grid (0-based)</span>
+      <input type="number" id="cfg-page" value="0" min="0" max="99" style="width:60px">
+      <span class="osc-hint">page 0 = first page in Beyond grid (0-based)</span>
     </div>
     <div class="osc-row">
       <span class="osc-lbl">MOUTH cue index</span>
-      <input type="number" id="cfg-mouth" value="0" min="0" max="99" style="width:52px">
+      <input type="number" id="cfg-mouth" value="0" min="0" max="99" style="width:60px">
     </div>
     <div class="osc-row">
       <span class="osc-lbl">LEFTEYE cue index</span>
-      <input type="number" id="cfg-leye" value="1" min="0" max="99" style="width:52px">
+      <input type="number" id="cfg-leye" value="1" min="0" max="99" style="width:60px">
     </div>
     <div class="osc-row">
       <span class="osc-lbl">RIGHTEYE cue index</span>
-      <input type="number" id="cfg-reye" value="2" min="0" max="99" style="width:52px">
+      <input type="number" id="cfg-reye" value="2" min="0" max="99" style="width:60px">
     </div>
     <div class="osc-row">
       <span class="osc-lbl">BROWS cue index</span>
-      <input type="number" id="cfg-brows" value="3" min="0" max="99" style="width:52px">
+      <input type="number" id="cfg-brows" value="3" min="0" max="99" style="width:60px">
     </div>
-    <!-- Live preview of resolved addresses -->
-    <div style="margin-top:4px;display:flex;flex-direction:column;gap:2px" id="addr-preview"></div>
+    <div id="addr-preview" style="display:flex;flex-direction:column;gap:4px;margin-top:4px"></div>
   </div>
 </div>
 
 <!-- ARTNET TC BAR -->
-<div class="tcbar">
-  <span class="tclbl">ArtNet TC</span>
-  <select id="tc-mode" style="font-size:11px">
+<div class="tc-bar">
+  <span class="tc-label">ArtNet TC</span>
+  <select id="tc-mode">
     <option value="off">Off — manual sync</option>
-    <option value="send" selected>Send — Bridge → Beyond (bridge is TC master)</option>
-    <option value="receive">Receive — Beyond → Bridge (Beyond is TC master)</option>
+    <option value="send" selected>Send — Bridge → Beyond</option>
+    <option value="receive">Receive — Beyond → Bridge</option>
   </select>
-  <select id="tc-fps" style="font-size:11px;width:90px">
+  <select id="tc-fps" style="width:110px">
     <option value="30" selected>30 fps</option>
     <option value="25">25 fps (PAL)</option>
     <option value="24">24 fps (film)</option>
     <option value="29.97">29.97 fps</option>
   </select>
-  <input type="text" id="tc-host" value="2.255.255.255" style="width:130px;font-size:10px" title="ArtNet broadcast / Beyond IP">
-  <span style="font-size:9px;color:#333">dest IP</span>
-  <span class="tcdig" id="tc-display">--:--:--:--</span>
-  <span class="tcst" id="tc-status">idle</span>
+  <input type="text" id="tc-host" value="2.255.255.255" style="width:150px" title="ArtNet broadcast / Beyond IP">
+  <span class="tc-display" id="tc-display">--:--:--:--</span>
+  <span class="tc-status" id="tc-status">idle</span>
 </div>
 
 <!-- TABS -->
 <div class="tabs">
-  <div class="tab on"  data-p="live">🎥 Live</div>
-  <div class="tab"     data-p="process">⚙ Process Video</div>
-  <div class="tab"     data-p="playback">▶ Playback</div>
+  <div class="tab on" data-p="live">🎥 Live</div>
+  <div class="tab" data-p="process">⚙ Process Video</div>
+  <div class="tab" data-p="playback">▶ Playback</div>
 </div>
 
-<!-- LIVE -->
+<!-- ── LIVE PANEL ── -->
 <div class="panel on" id="panel-live">
   <div class="card">
-    <h2>Source</h2>
+    <h2>Video Source</h2>
     <div class="row">
-      <button id="btn-webcam" class="pri">📷 Webcam</button>
+      <button class="go" id="btn-webcam">📷 Webcam</button>
       <button id="btn-capture">🖥 Capture Window</button>
-      <span style="font-size:10px;color:#444">← select Beyond video window for video-driven tracking</span>
-      <button id="btn-stop-live" class="red" style="margin-left:auto">■ Stop</button>
+      <span class="hint" style="font-size:12px">← capture Beyond's video preview for video-driven tracking</span>
+      <button class="red" id="btn-stop-live" style="margin-left:auto">■ Stop</button>
     </div>
   </div>
   <div class="vid-wrap">
@@ -153,75 +559,74 @@ canvas{display:block;border:1px solid #2a2a2a;border-radius:4px;max-width:100%}
   <div class="pgrid" id="pg-live"></div>
 </div>
 
-<!-- PROCESS -->
+<!-- ── PROCESS PANEL ── -->
 <div class="panel" id="panel-process">
   <div class="card">
-    <h2>1 — Load video file</h2>
-    <input type="file" id="video-file" accept="video/*" style="color:#aaa;font-size:11px">
-    <video id="video-proc" style="max-width:100%;border:1px solid #2a2a2a;border-radius:4px;display:none;margin-top:4px" controls></video>
+    <h2>1 — Load Video File</h2>
+    <input type="file" id="video-file" accept="video/*" style="color:var(--grey);font-size:14px;font-family:var(--font-ui)">
+    <video id="video-proc" style="max-width:100%;border:1px solid var(--border2);border-radius:6px;display:none;margin-top:6px" controls></video>
   </div>
   <div class="card">
-    <h2>2 — Process frames</h2>
+    <h2>2 — Process Frames</h2>
     <div class="row">
-      <label style="font-size:11px;color:#777">FPS:</label>
-      <input type="number" id="proc-fps" value="30" min="1" max="60" style="width:52px">
-      <button id="btn-process" class="pri">⚙ Process All Frames</button>
-      <button id="btn-stop-proc" class="red" style="display:none">■ Stop</button>
-      <span id="proc-stats" style="font-size:11px;color:#444;margin-left:auto"></span>
+      <span class="hint">FPS</span>
+      <input type="number" id="proc-fps" value="30" min="1" max="60" style="width:64px">
+      <button class="pri" id="btn-process">⚙ Process All Frames</button>
+      <button class="red" id="btn-stop-proc" style="display:none">■ Stop</button>
+      <span id="proc-stats" style="font-family:var(--font-mono);font-size:12px;color:var(--grey2);margin-left:auto"></span>
     </div>
     <div class="pbar"><div class="pfill" id="proc-pf"></div><div class="plbl" id="proc-pl">Ready</div></div>
   </div>
   <div class="card">
-    <h2>3 — OSC Triggers <span style="font-size:9px;color:#333;text-transform:none;letter-spacing:0"> — fired at exact timestamps during playback</span></h2>
+    <h2>3 — OSC Triggers <span style="font-size:11px;font-weight:400;letter-spacing:0;text-transform:none;color:var(--grey2)">— fired at exact timestamps during playback</span></h2>
     <div id="trigger-list" style="display:flex;flex-direction:column"></div>
-    <div class="row" style="margin-top:4px">
-      <button id="btn-add-tr">+ Trigger</button>
-      <button id="btn-auto-tr">⚡ Auto (start all face cues @ t=0)</button>
+    <div class="row" style="margin-top:6px">
+      <button id="btn-add-tr">+ Add Trigger</button>
+      <button id="btn-auto-tr">⚡ Auto — start all face cues @ t=0</button>
     </div>
   </div>
   <div class="card">
     <h2>4 — Export</h2>
     <div class="row">
-      <button id="btn-export" disabled>💾 Download face-data.json</button>
-      <button id="btn-upload" disabled>⬆ Send to Bridge</button>
+      <button class="go" id="btn-export" disabled>💾 Download face-data.json</button>
+      <button class="pri" id="btn-upload" disabled>⬆ Send to Bridge</button>
     </div>
   </div>
 </div>
 
-<!-- PLAYBACK -->
+<!-- ── PLAYBACK PANEL ── -->
 <div class="panel" id="panel-playback">
   <div class="card">
     <h2>Load face-data.json</h2>
     <div class="row">
-      <input type="file" id="data-file" accept=".json" style="color:#aaa;font-size:11px;flex:1">
-      <span id="data-info" style="font-size:11px;color:#444"></span>
+      <input type="file" id="data-file" accept=".json" style="color:var(--grey);font-size:14px;font-family:var(--font-ui);flex:1">
+      <span class="data-info" id="data-info"></span>
     </div>
   </div>
   <div class="card">
     <h2>Sync &amp; Play</h2>
-    <div style="font-size:10px;color:#444;margin-bottom:6px;line-height:1.7">
-      <b style="color:#4af">TC Send:</b> Bridge sends ArtNet TC from 00:00:00:00. Beyond Timeline TC-IN must be ON and show in waiting state.<br>
-      <b style="color:#4af">Play + Countdown:</b> use countdown seconds to get Beyond ready, then both fire simultaneously.<br>
-      <b style="color:#4af">Play Now:</b> immediate — use when Beyond is already in waiting state.
+    <div class="hint" style="margin-bottom:10px">
+      <b>TC Send:</b> Bridge sends ArtNet TC from 00:00:00:00. Beyond Timeline TC-IN must be ON and show in waiting state.<br>
+      <b>Play + Countdown:</b> countdown gives you time to focus Beyond before both fire simultaneously.<br>
+      <b>Play Now:</b> immediate — use when Beyond is already in waiting state.
     </div>
     <div class="row">
-      <input type="number" id="cd-secs" value="3" min="1" max="9" style="width:46px">
-      <label style="font-size:11px;color:#777">sec</label>
-      <button id="btn-play" class="pri" disabled>▶ Play + Countdown</button>
-      <button id="btn-play-now" class="pri" disabled>▶ Play Now</button>
-      <button id="btn-stop-pb" class="red" style="display:none">■ Stop</button>
+      <input type="number" id="cd-secs" value="3" min="1" max="9" style="width:56px">
+      <span class="hint">sec</span>
+      <button class="go" id="btn-play" disabled>▶ Play + Countdown</button>
+      <button class="pri" id="btn-play-now" disabled>▶ Play Now</button>
+      <button class="red" id="btn-stop-pb" style="display:none">■ Stop</button>
     </div>
     <div id="countdown">3</div>
-    <div class="pbar" style="margin-top:4px"><div class="pfill" id="pb-pf"></div><div class="plbl" id="pb-pl">—</div></div>
+    <div class="pbar" style="margin-top:8px"><div class="pfill" id="pb-pf"></div><div class="plbl" id="pb-pl">—</div></div>
   </div>
   <div class="pgrid" id="pg-pb"></div>
 </div>
 
-<div id="statusbar">Ready. Connect OSC bridge (npm start in face-osc-bridge/).</div>
+<div id="statusbar">Ready — connect OSC bridge: cd face-osc-bridge &amp;&amp; npm start</div>
 <video id="vid-live-el" style="display:none" autoplay playsinline></video>
 
 <script>
-// ── OSC address builder — uses Beyond's native /beyond/ direct addresses ──────
 function getOSCMap(){
   const zone  = document.getElementById('cfg-zone').value.trim() || 'FACE';
   const page  = parseInt(document.getElementById('cfg-page').value)||0;
@@ -232,27 +637,21 @@ function getOSCMap(){
   const Z = `/beyond/zone/${zone}/livecontrol`;
   const C = (i)=>`/beyond/cue/${page}/${i}/livecontrol`;
   return {
-    // Zone rotation — angley=yaw, anglex=pitch, anglez=roll
-    // Beyond livecontrol angle values are in DEGREES directly (-360*8 .. 360*8)
-    yaw:         {addr:`${Z}/angley`,   scale:(v)=>(v-0.5)*90.0},
-    pitch:       {addr:`${Z}/anglex`,   scale:(v)=>(v-0.5)*60.0},
-    roll:        {addr:`${Z}/anglez`,   scale:(v)=>(v-0.5)*60.0},
-    // MOUTH — sizey: 5..100 (jaw open amount)
-    jawOpen:     {addr:`${C(mouth)}/sizey`, scale:(v)=> 5+(v*95)},
+    yaw:         {addr:`${Z}/angley`,           scale:(v)=>(v-0.5)*90.0},
+    pitch:       {addr:`${Z}/anglex`,           scale:(v)=>(v-0.5)*60.0},
+    roll:        {addr:`${Z}/anglez`,           scale:(v)=>(v-0.5)*60.0},
+    jawOpen:     {addr:`${C(mouth)}/sizey`,     scale:(v)=> 5+(v*95)},
     smile:       {addr:`${C(mouth)}/fx1action`, scale:(v)=>v*100},
     frown:       {addr:`${C(mouth)}/fx2action`, scale:(v)=>v*100},
     pucker:      {addr:`${C(mouth)}/fx3action`, scale:(v)=>v*100},
     funnel:      {addr:`${C(mouth)}/fx4action`, scale:(v)=>v*100},
-    // EYES — sizey: 10..100
-    leye:        {addr:`${C(leye)}/sizey`,  scale:(v)=>10+(v*90)},
-    reye:        {addr:`${C(reye)}/sizey`,  scale:(v)=>10+(v*90)},
-    squint:      {addr:`${C(leye)}/fx1action`, scale:(v)=>v*100},
-    wide:        {addr:`${C(leye)}/fx2action`, scale:(v)=>v*100},
-    // BROWS
+    leye:        {addr:`${C(leye)}/sizey`,      scale:(v)=>10+(v*90)},
+    reye:        {addr:`${C(reye)}/sizey`,      scale:(v)=>10+(v*90)},
+    squint:      {addr:`${C(leye)}/fx1action`,  scale:(v)=>v*100},
+    wide:        {addr:`${C(leye)}/fx2action`,  scale:(v)=>v*100},
     browInnerUp: {addr:`${C(brows)}/fx1action`, scale:(v)=>v*100},
     browOuterUp: {addr:`${C(brows)}/fx2action`, scale:(v)=>v*100},
     browDown:    {addr:`${C(brows)}/fx3action`, scale:(v)=>v*100},
-    // Mirror eye squint/wide to right eye too (sent separately)
     _squintR:    {addr:`${C(reye)}/fx1action`,  scale:(v)=>v*100, src:'squint'},
     _wideR:      {addr:`${C(reye)}/fx2action`,  scale:(v)=>v*100, src:'wide'},
   };
@@ -262,14 +661,14 @@ function updateAddrPreview(){
   const map=getOSCMap();
   const el=document.getElementById('addr-preview');
   const entries=[
-    ['Yaw → angley',  map.yaw.addr],
-    ['Pitch → anglex',map.pitch.addr],
-    ['Roll → anglez', map.roll.addr],
-    ['Jaw → sizey',   map.jawOpen.addr],
-    ['Smile → fx1act',map.smile.addr],
-    ['L.Eye → sizey', map.leye.addr],
-    ['R.Eye → sizey', map.reye.addr],
-    ['Brow↑ → fx1act',map.browInnerUp.addr],
+    ['Yaw → angley',   map.yaw.addr],
+    ['Pitch → anglex', map.pitch.addr],
+    ['Roll → anglez',  map.roll.addr],
+    ['Jaw → sizey',    map.jawOpen.addr],
+    ['Smile → fx1',    map.smile.addr],
+    ['L.Eye → sizey',  map.leye.addr],
+    ['R.Eye → sizey',  map.reye.addr],
+    ['Brow↑ → fx1',    map.browInnerUp.addr],
   ];
   el.innerHTML=entries.map(([l,a])=>
     `<div class="osc-row"><span class="osc-lbl">${l}</span><span class="osc-addr">${a}</span></div>`
@@ -280,7 +679,7 @@ document.getElementById('btn-show-osc').addEventListener('click',()=>{
   const p=document.getElementById('osc-addr-panel');
   const vis=p.style.display==='flex';
   p.style.display=vis?'none':'flex';
-  document.getElementById('btn-show-osc').textContent=vis?'▼ Show/Edit':'▲ Hide';
+  document.getElementById('btn-show-osc').textContent=vis?'▼ Configure':'▲ Hide';
   if(!vis) updateAddrPreview();
 });
 ['cfg-zone','cfg-page','cfg-mouth','cfg-leye','cfg-reye','cfg-brows'].forEach(id=>{
@@ -294,21 +693,19 @@ import{FaceLandmarker,FilesetResolver,DrawingUtils}
 
 const PARAMS=['yaw','pitch','roll','jawOpen','smile','frown','leye','reye',
               'squint','wide','browInnerUp','browOuterUp','browDown','pucker','funnel','cheekPuff'];
-const PCOLS={yaw:'#4af',pitch:'#4af',roll:'#4af',jawOpen:'#fa4',smile:'#fa4',
-             frown:'#fa4',pucker:'#fa4',funnel:'#fa4',cheekPuff:'#fa4',
-             leye:'#4f8',reye:'#4f8',squint:'#4f8',wide:'#4f8',
-             browInnerUp:'#f8c',browOuterUp:'#f8c',browDown:'#f8c'};
-
-// CC map for MIDI fallback
+const PCOLS={
+  yaw:'#00d4ff',pitch:'#00d4ff',roll:'#00d4ff',
+  jawOpen:'#ffaa00',smile:'#ffaa00',frown:'#ffaa00',pucker:'#ffaa00',funnel:'#ffaa00',cheekPuff:'#ffaa00',
+  leye:'#00ff88',reye:'#00ff88',squint:'#00ff88',wide:'#00ff88',
+  browInnerUp:'#ff88cc',browOuterUp:'#ff88cc',browDown:'#ff88cc'
+};
 const CC_MAP={yaw:1,pitch:2,leye:3,reye:4,roll:5,smile:6,
               browInnerUp:7,browDown:8,jawOpen:11,frown:12,
               wide:13,squint:14,pucker:15,funnel:16,cheekPuff:17,browOuterUp:18};
 
-// EMA
 const EK=0.2,ES={};
 function ema(k,v){ES[k]=(ES[k]??v)+EK*(v-(ES[k]??v));return ES[k];}
 
-// ── WebSocket ─────────────────────────────────────────────────────────────────
 let ws=null;
 function connectOSC(){
   const url=document.getElementById('osc-url').value.trim();
@@ -337,7 +734,6 @@ function tcHost(){return document.getElementById('tc-host').value.trim()||'2.255
   });
 });
 
-// ── MIDI ──────────────────────────────────────────────────────────────────────
 let midiAccess=null,midiOut=null;
 async function initMIDI(){
   if(!navigator.requestMIDIAccess)return;
@@ -357,59 +753,51 @@ async function initMIDI(){
 document.getElementById('midiOut').addEventListener('change',e=>{midiOut=midiAccess?.outputs.get(e.target.value)||null;});
 initMIDI();
 
-// ── OSC dispatch via bridge ───────────────────────────────────────────────────
 const lastSent={};
 const THRESH=0.004;
 
-function dispatchOSC(params, timeMs=null){
-  const oscMap = getOSCMap();
+function dispatchOSC(params,timeMs=null){
+  const oscMap=getOSCMap();
   const out=[];
-
   for(const[key,cfg]of Object.entries(oscMap)){
-    const srcKey = cfg.src || key;
-    const val = params[srcKey];
+    const srcKey=cfg.src||key;
+    const val=params[srcKey];
     if(val===undefined) continue;
-    const scaled = cfg.scale(val);
-    const cacheKey = cfg.addr;
-    if(Math.abs(scaled-(lastSent[cacheKey]??-9999))>=THRESH*(cfg.addr.includes('angle')?1:1)){
+    const scaled=cfg.scale(val);
+    const cacheKey=cfg.addr;
+    if(Math.abs(scaled-(lastSent[cacheKey]??-9999))>=THRESH){
       lastSent[cacheKey]=scaled;
-      out.push({addr:cfg.addr, val:scaled});
+      out.push({addr:cfg.addr,val:scaled});
     }
   }
-
   if(out.length){
     if(timeMs!==null) sendWS({type:'playback',timeMs,osc:out});
     else sendWS({type:'oscBatch',osc:out});
   }
-
-  // MIDI fallback
   if(midiOut){
     PARAMS.forEach(k=>{
-      const cc=CC_MAP[k]; if(!cc||params[k]===undefined)return;
+      const cc=CC_MAP[k];if(!cc||params[k]===undefined)return;
       midiOut.send([0xB0,cc,Math.max(0,Math.min(127,Math.round(params[k]*127)))]);
     });
   }
 }
 
-// ── TC display ────────────────────────────────────────────────────────────────
 function showTC(ms){
   const fps=tcFPS();
   const h=Math.floor(ms/3600000)%24,m=Math.floor(ms/60000)%60,
         s=Math.floor(ms/1000)%60,f=Math.floor((ms%1000)/(1000/fps));
-  document.getElementById('tc-display').textContent=
-    `${p2(h)}:${p2(m)}:${p2(s)}:${p2(f)}`;
+  document.getElementById('tc-display').textContent=`${p2(h)}:${p2(m)}:${p2(s)}:${p2(f)}`;
 }
 function p2(n){return String(Math.floor(n)).padStart(2,'0');}
 function bdg(id,lbl,cls){const e=document.getElementById(id);e.textContent=lbl;e.className='badge '+cls;}
 function st(t){document.getElementById('statusbar').textContent=t;}
 
-// ── Param grid ────────────────────────────────────────────────────────────────
 function buildPG(id){
   const c=document.getElementById(id);c.innerHTML='';
   PARAMS.forEach(n=>{
     c.innerHTML+=`<div class="pg">
-      <div class="pgn">${n}<span style="color:#252525;font-size:8px"> CC${CC_MAP[n]||'—'}</span></div>
-      <div class="pgb"><div class="pgf" id="pf-${id}-${n}" style="background:${PCOLS[n]||'#4af'}"></div></div>
+      <div class="pgn">${n}<span>CC${CC_MAP[n]||'—'}</span></div>
+      <div class="pgb"><div class="pgf" id="pf-${id}-${n}" style="background:${PCOLS[n]||'#00d4ff'}"></div></div>
       <div class="pgv" id="pv-${id}-${n}">0.00</div></div>`;
   });
 }
@@ -431,7 +819,6 @@ document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
   document.getElementById('panel-'+t.dataset.p).classList.add('on');
 }));
 
-// ── MediaPipe ─────────────────────────────────────────────────────────────────
 let flV=null,flI=null;
 const canvasL=document.getElementById('canvas-live');
 const ctxL=canvasL.getContext('2d');
@@ -449,7 +836,7 @@ async function initMP(){
   flV=await FaceLandmarker.createFromOptions(vis,{baseOptions:base,runningMode:'VIDEO',...opts});
   flI=await FaceLandmarker.createFromOptions(vis,{baseOptions:base,runningMode:'IMAGE',...opts});
   drawU=new DrawingUtils(ctxL);
-  st('✓ Model ready.');
+  st('✓ Model ready — select webcam or capture window to begin.');
 }
 
 function euler(m){return{pitch:Math.asin(-m[9])*(180/Math.PI),yaw:Math.atan2(m[8],m[10])*(180/Math.PI),roll:Math.atan2(m[1],m[5])*(180/Math.PI)};}
@@ -482,7 +869,6 @@ function extract(res,useZero=true){
   };
 }
 
-// ── LIVE ──────────────────────────────────────────────────────────────────────
 let liveStream=null,liveRun=false,liveLast=-1;
 
 async function startLive(mode){
@@ -515,17 +901,16 @@ function liveLoop(){
   if(res.faceLandmarks?.length){
     drawU=new DrawingUtils(ctxL);
     drawU.drawConnectors(res.faceLandmarks[0],FaceLandmarker.FACE_LANDMARKS_TESSELATION,{color:'#fff1',lineWidth:.5});
-    drawU.drawConnectors(res.faceLandmarks[0],FaceLandmarker.FACE_LANDMARKS_LEFT_EYE,{color:'#4af',lineWidth:1.5});
-    drawU.drawConnectors(res.faceLandmarks[0],FaceLandmarker.FACE_LANDMARKS_RIGHT_EYE,{color:'#4af',lineWidth:1.5});
-    drawU.drawConnectors(res.faceLandmarks[0],FaceLandmarker.FACE_LANDMARKS_LIPS,{color:'#fa4',lineWidth:1.5});
-    drawU.drawConnectors(res.faceLandmarks[0],FaceLandmarker.FACE_LANDMARKS_LEFT_EYEBROW,{color:'#f8c',lineWidth:1.5});
-    drawU.drawConnectors(res.faceLandmarks[0],FaceLandmarker.FACE_LANDMARKS_RIGHT_EYEBROW,{color:'#f8c',lineWidth:1.5});
+    drawU.drawConnectors(res.faceLandmarks[0],FaceLandmarker.FACE_LANDMARKS_LEFT_EYE,{color:'#00d4ff',lineWidth:1.5});
+    drawU.drawConnectors(res.faceLandmarks[0],FaceLandmarker.FACE_LANDMARKS_RIGHT_EYE,{color:'#00d4ff',lineWidth:1.5});
+    drawU.drawConnectors(res.faceLandmarks[0],FaceLandmarker.FACE_LANDMARKS_LIPS,{color:'#ffaa00',lineWidth:1.5});
+    drawU.drawConnectors(res.faceLandmarks[0],FaceLandmarker.FACE_LANDMARKS_LEFT_EYEBROW,{color:'#ff88cc',lineWidth:1.5});
+    drawU.drawConnectors(res.faceLandmarks[0],FaceLandmarker.FACE_LANDMARKS_RIGHT_EYEBROW,{color:'#ff88cc',lineWidth:1.5});
     const raw=extract(res);
     if(raw){
       const sm={};PARAMS.forEach(k=>{sm[k]=ema('L'+k,raw[k]);});
       dispatchOSC(sm);updPG('pg-live',sm);
-      document.getElementById('live-ovr').textContent=
-        '✓ '+(ws?.readyState===1?'OSC':'MIDI');
+      document.getElementById('live-ovr').textContent='✓ '+(ws?.readyState===1?'OSC':'MIDI');
     }
   }else{document.getElementById('live-ovr').textContent='👁 No face';}
   requestAnimationFrame(liveLoop);
@@ -535,7 +920,6 @@ document.getElementById('btn-webcam').addEventListener('click',()=>startLive('we
 document.getElementById('btn-capture').addEventListener('click',()=>startLive('capture'));
 document.getElementById('btn-stop-live').addEventListener('click',stopLive);
 
-// ── PROCESS ───────────────────────────────────────────────────────────────────
 let procFrames=null,procTriggers=[],procRun=false;
 
 document.getElementById('video-file').addEventListener('change',e=>{
@@ -574,7 +958,7 @@ document.getElementById('btn-process').addEventListener('click',async()=>{
   document.getElementById('btn-export').disabled=false;
   document.getElementById('btn-upload').disabled=false;
   document.getElementById('proc-stats').textContent=`${procFrames.length} frames, ${dur.toFixed(1)}s`;
-  st(`✓ Done. ${procFrames.length} frames. Add triggers, then export.`);
+  st(`✓ Done — ${procFrames.length} frames. Add triggers then export.`);
   procRun=false;
 });
 document.getElementById('btn-stop-proc').addEventListener('click',()=>{procRun=false;});
@@ -584,10 +968,10 @@ function renderTriggers(){
   procTriggers.forEach((tr,i)=>{
     const row=document.createElement('div');row.className='tr-row row';
     row.innerHTML=`
-      <input type="number" value="${tr.timeMs}" style="width:72px" placeholder="ms" data-i="${i}" data-f="t">
-      <span style="font-size:10px;color:#444">ms</span>
+      <input type="number" value="${tr.timeMs}" style="width:80px" placeholder="ms" data-i="${i}" data-f="t">
+      <span style="font-size:12px;color:var(--grey2)">ms</span>
       <input type="text" value="${tr.address}" style="flex:1;min-width:220px" placeholder="/beyond/general/StartCue" data-i="${i}" data-f="a">
-      <button data-del="${i}" style="padding:2px 8px;font-size:10px;color:#f44;border-color:#f44;background:#1a0a0a">✕</button>`;
+      <button data-del="${i}" class="red sm">✕</button>`;
     el.appendChild(row);
   });
   el.querySelectorAll('input').forEach(inp=>inp.addEventListener('change',e=>{
@@ -611,11 +995,7 @@ document.getElementById('btn-auto-tr').addEventListener('click',()=>{
     parseInt(document.getElementById('cfg-reye').value)||2,
     parseInt(document.getElementById('cfg-brows').value)||3,
   ];
-  procTriggers=cues.map(ci=>({
-    timeMs:0,
-    address:`/beyond/general/CueDown`,
-    args:[page,ci]
-  }));
+  procTriggers=cues.map(ci=>({timeMs:0,address:`/beyond/general/CueDown`,args:[page,ci]}));
   renderTriggers();st('Auto triggers: CueDown for all face cues at t=0');
 });
 
@@ -638,7 +1018,6 @@ document.getElementById('btn-upload').addEventListener('click',()=>{
   sendWS({type:'loadData',data:buildJSON()});st('Sent to bridge.');
 });
 
-// ── PLAYBACK — uses Web Worker for smooth off-thread timer ────────────────────
 let pbData=null,worker=null;
 
 document.getElementById('data-file').addEventListener('change',e=>{
@@ -667,23 +1046,17 @@ async function startPB(cd){
     }
     document.getElementById('countdown').style.display='none';
   }
-
-  // Send TC config to bridge before starting
   sendWS({type:'tcMode',mode:tcMode(),fps:tcFPS(),host:tcHost()});
-
-  // Spin up Web Worker
   if(worker) worker.terminate();
   worker=new Worker('playback-worker.js');
-
   worker.onmessage=e=>{
     const m=e.data;
     switch(m.type){
       case 'frame':
-        dispatchOSC(m.params, m.timeMs);
-        updPG('pg-pb', m.params);
+        dispatchOSC(m.params,m.timeMs);
+        updPG('pg-pb',m.params);
         showTC(m.timeMs);
-        // Send ArtNet TC via bridge
-        if(tcMode()==='send') sendWS({type:'sendTC', timeMs:m.timeMs, fps:tcFPS(), host:tcHost()});
+        if(tcMode()==='send') sendWS({type:'sendTC',timeMs:m.timeMs,fps:tcFPS(),host:tcHost()});
         break;
       case 'trigger':
         sendWS({type:'trigger',address:m.address,args:m.args});
@@ -692,8 +1065,7 @@ async function startPB(cd){
       case 'progress':
         const pct=Math.min(100,m.elapsed/m.total*100).toFixed(1);
         document.getElementById('pb-pf').style.width=pct+'%';
-        document.getElementById('pb-pl').textContent=
-          `${(m.elapsed/1000).toFixed(2)}s / ${(m.total/1000).toFixed(2)}s`;
+        document.getElementById('pb-pl').textContent=`${(m.elapsed/1000).toFixed(2)}s / ${(m.total/1000).toFixed(2)}s`;
         break;
       case 'done':
         document.getElementById('btn-stop-pb').style.display='none';
@@ -702,14 +1074,7 @@ async function startPB(cd){
         break;
     }
   };
-
-  worker.postMessage({
-    type:'start',
-    frames: pbData.frames,
-    triggers: pbData.triggers||[],
-    sendTC: tcMode()==='send'
-  });
-
+  worker.postMessage({type:'start',frames:pbData.frames,triggers:pbData.triggers||[],sendTC:tcMode()==='send'});
   document.getElementById('btn-stop-pb').style.display='';
   document.getElementById('tc-status').textContent='sending ▶';
   st('▶ Playing — ArtNet TC + OSC streaming...');
