@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Face → OSC Bridge v4</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#111;color:#eee;font-family:'Courier New',monospace;padding:14px;display:flex;flex-direction:column;gap:10px;max-width:980px}
+h1{font-size:13px;color:#555;letter-spacing:3px;text-transform:uppercase}
+h2{font-size:10px;color:#555;letter-spacing:2px;text-transform:uppercase;margin-bottom:5px}
+.card{background:#181818;border:1px solid #252525;border-radius:4px;padding:10px;display:flex;flex-direction:column;gap:7px}
+.row{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+button{background:#222;color:#eee;border:1px solid #444;padding:5px 12px;font-family:inherit;font-size:11px;cursor:pointer;border-radius:3px}
+button:hover{background:#2c2c2c}
+button.pri{background:#1a3050;border-color:#4af;color:#4af}
+button.pri:hover{background:#1f3a60}
+button.red{background:#3a1414;border-color:#f44;color:#f44}
+button:disabled{opacity:.35;cursor:default}
+select,input[type=text],input[type=number]{background:#1e1e1e;color:#eee;border:1px solid #444;padding:4px 7px;font-family:inherit;font-size:11px;border-radius:3px}
+.badge{font-size:10px;padding:2px 8px;border-radius:10px;font-weight:bold;letter-spacing:.5px}
+.g{background:#163016;color:#4f8;border:1px solid #2d7a2d}
+.r{background:#3a1414;color:#f44;border:1px solid #7a2d2d}
+.a{background:#3a2e14;color:#fa4;border:1px solid #7a5a2d}
+.tabs{display:flex;gap:0}
+.tab{flex:1;padding:9px;text-align:center;font-size:11px;cursor:pointer;background:#161616;border:1px solid #2a2a2a;letter-spacing:1px;text-transform:uppercase}
+.tab:first-child{border-radius:4px 0 0 4px}.tab:last-child{border-radius:0 4px 4px 0}
+.tab.on{background:#1e1e1e;color:#4af;border-color:#4af}
+.panel{display:none;flex-direction:column;gap:9px}.panel.on{display:flex}
+canvas{display:block;border:1px solid #2a2a2a;border-radius:4px;max-width:100%}
+.vid-wrap{position:relative;display:inline-block}
+.vid-ovr{position:absolute;bottom:6px;left:6px;font-size:11px;color:#fa0;background:#0009;padding:2px 7px;border-radius:3px;pointer-events:none}
+.pbar{background:#1e1e1e;border-radius:3px;height:16px;overflow:hidden;position:relative}
+.pfill{height:100%;background:linear-gradient(90deg,#2af,#48f);border-radius:3px;width:0%}
+.plbl{position:absolute;inset:0;text-align:center;font-size:10px;line-height:16px}
+.pgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:5px}
+.pg{background:#161616;border:1px solid #1e1e1e;border-radius:3px;padding:4px 6px}
+.pgn{font-size:9px;color:#555;text-transform:uppercase;margin-bottom:2px}
+.pgb{background:#252525;height:5px;border-radius:1px;overflow:hidden}
+.pgf{height:100%;border-radius:1px;width:0%;transition:width 50ms}
+.pgv{font-size:9px;color:#3a3a3a;text-align:right;margin-top:1px}
+.tcbar{display:flex;align-items:center;gap:8px;background:#141420;border:1px solid #22224a;border-radius:4px;padding:8px 11px;flex-wrap:wrap}
+.tclbl{font-size:11px;color:#68a;font-weight:bold;letter-spacing:1px;min-width:60px}
+.tcdig{font-size:20px;color:#48f;font-variant-numeric:tabular-nums;letter-spacing:2px;min-width:170px}
+.tcst{font-size:10px;color:#444;min-width:70px}
+.osc-cfg{background:#141818;border:1px solid #1e2a2a;border-radius:4px;padding:8px 10px;display:flex;flex-direction:column;gap:6px}
+.osc-row{display:flex;align-items:center;gap:6px;font-size:11px}
+.osc-lbl{color:#4a8a5a;min-width:130px;font-size:10px;letter-spacing:.5px}
+.osc-addr{color:#8af;font-size:10px;font-family:'Courier New';background:#0a1a0a;border:1px solid #1a3a1a;padding:2px 6px;border-radius:2px;flex:1;min-width:300px}
+#countdown{font-size:64px;color:#4af;text-align:center;padding:20px;display:none;font-variant-numeric:tabular-nums}
+.tr-row{display:flex;align-items:center;gap:4px;padding:3px 0;border-bottom:1px solid #1e1e1e}
+#statusbar{font-size:11px;color:#fa0;min-height:18px;padding:2px 0}
+</style>
+</head>
+<body>
+
+<h1>Face → OSC Bridge <span style="color:#252525">v4</span></h1>
+
+<!-- CONNECTION -->
+<div class="card">
+  <div class="row">
+    <span class="badge r" id="osc-badge">OSC</span>
+    <input type="text" id="osc-url" value="ws://localhost:8081" style="flex:1;min-width:160px">
+    <button id="btn-osc-connect">Connect</button>
+    <span style="color:#2a2a2a">|</span>
+    <span class="badge r" id="midi-badge">MIDI</span>
+    <select id="midiOut" style="flex:1;min-width:120px"><option value="">— no MIDI —</option></select>
+  </div>
+</div>
+
+<!-- OSC ADDRESS CONFIG -->
+<div class="osc-cfg">
+  <div class="row" style="margin-bottom:2px">
+    <span style="font-size:10px;color:#4a8;letter-spacing:2px;text-transform:uppercase">Beyond OSC Addresses</span>
+    <span style="font-size:9px;color:#333;margin-left:6px">— native /beyond/ direct control, no PangoScript needed</span>
+    <button id="btn-show-osc" style="margin-left:auto;font-size:10px;padding:2px 8px">▼ Show/Edit</button>
+  </div>
+  <div id="osc-addr-panel" style="display:none;flex-direction:column;gap:4px">
+    <!-- Zone name for rotation -->
+    <div class="osc-row">
+      <span class="osc-lbl">Zone name (rotation)</span>
+      <input type="text" id="cfg-zone" value="FACE" style="width:100px">
+      <span style="font-size:9px;color:#444">→ /beyond/zone/FACE/livecontrol/angley  etc.</span>
+    </div>
+    <!-- Cue page index for each part -->
+    <div class="osc-row">
+      <span class="osc-lbl">Cue page index</span>
+      <input type="number" id="cfg-page" value="0" min="0" max="99" style="width:52px">
+      <span style="font-size:9px;color:#444">— page 0 = first page in Beyond grid (0-based)</span>
+    </div>
+    <div class="osc-row">
+      <span class="osc-lbl">MOUTH cue index</span>
+      <input type="number" id="cfg-mouth" value="0" min="0" max="99" style="width:52px">
+    </div>
+    <div class="osc-row">
+      <span class="osc-lbl">LEFTEYE cue index</span>
+      <input type="number" id="cfg-leye" value="1" min="0" max="99" style="width:52px">
+    </div>
+    <div class="osc-row">
+      <span class="osc-lbl">RIGHTEYE cue index</span>
+      <input type="number" id="cfg-reye" value="2" min="0" max="99" style="width:52px">
+    </div>
+    <div class="osc-row">
+      <span class="osc-lbl">BROWS cue index</span>
+      <input type="number" id="cfg-brows" value="3" min="0" max="99" style="width:52px">
+    </div>
+    <!-- Live preview of resolved addresses -->
+    <div style="margin-top:4px;display:flex;flex-direction:column;gap:2px" id="addr-preview"></div>
+  </div>
+</div>
+
+<!-- ARTNET TC BAR -->
+<div class="tcbar">
+  <span class="tclbl">ArtNet TC</span>
+  <select id="tc-mode" style="font-size:11px">
+    <option value="off">Off — manual sync</option>
+    <option value="send" selected>Send — Bridge → Beyond (bridge is TC master)</option>
+    <option value="receive">Receive — Beyond → Bridge (Beyond is TC master)</option>
+  </select>
+  <select id="tc-fps" style="font-size:11px;width:90px">
+    <option value="30" selected>30 fps</option>
+    <option value="25">25 fps (PAL)</option>
+    <option value="24">24 fps (film)</option>
+    <option value="29.97">29.97 fps</option>
+  </select>
+  <input type="text" id="tc-host" value="2.255.255.255" style="width:130px;font-size:10px" title="ArtNet broadcast / Beyond IP">
+  <span style="font-size:9px;color:#333">dest IP</span>
+  <span class="tcdig" id="tc-display">--:--:--:--</span>
+  <span class="tcst" id="tc-status">idle</span>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <div class="tab on"  data-p="live">🎥 Live</div>
+  <div class="tab"     data-p="process">⚙ Process Video</div>
+  <div class="tab"     data-p="playback">▶ Playback</div>
+</div>
+
+<!-- LIVE -->
+<div class="panel on" id="panel-live">
+  <div class="card">
+    <h2>Source</h2>
+    <div class="row">
+      <button id="btn-webcam" class="pri">📷 Webcam</button>
+      <button id="btn-capture">🖥 Capture Window</button>
+      <span style="font-size:10px;color:#444">← select Beyond video window for video-driven tracking</span>
+      <button id="btn-stop-live" class="red" style="margin-left:auto">■ Stop</button>
+    </div>
+  </div>
+  <div class="vid-wrap">
+    <canvas id="canvas-live" width="640" height="360"></canvas>
+    <div class="vid-ovr" id="live-ovr">Idle</div>
+  </div>
+  <div class="pgrid" id="pg-live"></div>
+</div>
+
+<!-- PROCESS -->
+<div class="panel" id="panel-process">
+  <div class="card">
+    <h2>1 — Load video file</h2>
+    <input type="file" id="video-file" accept="video/*" style="color:#aaa;font-size:11px">
+    <video id="video-proc" style="max-width:100%;border:1px solid #2a2a2a;border-radius:4px;display:none;margin-top:4px" controls></video>
+  </div>
+  <div class="card">
+    <h2>2 — Process frames</h2>
+    <div class="row">
+      <label style="font-size:11px;color:#777">FPS:</label>
+      <input type="number" id="proc-fps" value="30" min="1" max="60" style="width:52px">
+      <button id="btn-process" class="pri">⚙ Process All Frames</button>
+      <button id="btn-stop-proc" class="red" style="display:none">■ Stop</button>
+      <span id="proc-stats" style="font-size:11px;color:#444;margin-left:auto"></span>
+    </div>
+    <div class="pbar"><div class="pfill" id="proc-pf"></div><div class="plbl" id="proc-pl">Ready</div></div>
+  </div>
+  <div class="card">
+    <h2>3 — OSC Triggers <span style="font-size:9px;color:#333;text-transform:none;letter-spacing:0"> — fired at exact timestamps during playback</span></h2>
+    <div id="trigger-list" style="display:flex;flex-direction:column"></div>
+    <div class="row" style="margin-top:4px">
+      <button id="btn-add-tr">+ Trigger</button>
+      <button id="btn-auto-tr">⚡ Auto (start all face cues @ t=0)</button>
+    </div>
+  </div>
+  <div class="card">
+    <h2>4 — Export</h2>
+    <div class="row">
+      <button id="btn-export" disabled>💾 Download face-data.json</button>
+      <button id="btn-upload" disabled>⬆ Send to Bridge</button>
+    </div>
+  </div>
+</div>
+
+<!-- PLAYBACK -->
+<div class="panel" id="panel-playback">
+  <div class="card">
+    <h2>Load face-data.json</h2>
+    <div class="row">
+      <input type="file" id="data-file" accept=".json" style="color:#aaa;font-size:11px;flex:1">
+      <span id="data-info" style="font-size:11px;color:#444"></span>
+    </div>
+  </div>
+  <div class="card">
+    <h2>Sync &amp; Play</h2>
+    <div style="font-size:10px;color:#444;margin-bottom:6px;line-height:1.7">
+      <b style="color:#4af">TC Send:</b> Bridge sends ArtNet TC from 00:00:00:00. Beyond Timeline TC-IN must be ON and show in waiting state.<br>
+      <b style="color:#4af">Play + Countdown:</b> use countdown seconds to get Beyond ready, then both fire simultaneously.<br>
+      <b style="color:#4af">Play Now:</b> immediate — use when Beyond is already in waiting state.
+    </div>
+    <div class="row">
+      <input type="number" id="cd-secs" value="3" min="1" max="9" style="width:46px">
+      <label style="font-size:11px;color:#777">sec</label>
+      <button id="btn-play" class="pri" disabled>▶ Play + Countdown</button>
+      <button id="btn-play-now" class="pri" disabled>▶ Play Now</button>
+      <button id="btn-stop-pb" class="red" style="display:none">■ Stop</button>
+    </div>
+    <div id="countdown">3</div>
+    <div class="pbar" style="margin-top:4px"><div class="pfill" id="pb-pf"></div><div class="plbl" id="pb-pl">—</div></div>
+  </div>
+  <div class="pgrid" id="pg-pb"></div>
+</div>
+
+<div id="statusbar">Ready. Connect OSC bridge (npm start in face-osc-bridge/).</div>
+<video id="vid-live-el" style="display:none" autoplay playsinline></video>
+
+<script>
+// ── OSC address builder — uses Beyond's native /beyond/ direct addresses ──────
+function getOSCMap(){
+  const zone  = document.getElementById('cfg-zone').value.trim() || 'FACE';
+  const page  = parseInt(document.getElementById('cfg-page').value)||0;
+  const mouth = parseInt(document.getElementById('cfg-mouth').value)||0;
+  const leye  = parseInt(document.getElementById('cfg-leye').value)||1;
+  const reye  = parseInt(document.getElementById('cfg-reye').value)||2;
+  const brows = parseInt(document.getElementById('cfg-brows').value)||3;
+  const Z = `/beyond/zone/${zone}/livecontrol`;
+  const C = (i)=>`/beyond/cue/${page}/${i}/livecontrol`;
+  return {
+    // Zone rotation — angley=yaw, anglex=pitch, anglez=roll
+    // Beyond livecontrol angle values are in DEGREES directly (-360*8 .. 360*8)
+    yaw:         {addr:`${Z}/angley`,   scale:(v)=>(v-0.5)*90.0},
+    pitch:       {addr:`${Z}/anglex`,   scale:(v)=>(v-0.5)*60.0},
+    roll:        {addr:`${Z}/anglez`,   scale:(v)=>(v-0.5)*60.0},
+    // MOUTH — sizey: 5..100 (jaw open amount)
+    jawOpen:     {addr:`${C(mouth)}/sizey`, scale:(v)=> 5+(v*95)},
+    smile:       {addr:`${C(mouth)}/fx1action`, scale:(v)=>v*100},
+    frown:       {addr:`${C(mouth)}/fx2action`, scale:(v)=>v*100},
+    pucker:      {addr:`${C(mouth)}/fx3action`, scale:(v)=>v*100},
+    funnel:      {addr:`${C(mouth)}/fx4action`, scale:(v)=>v*100},
+    // EYES — sizey: 10..100
+    leye:        {addr:`${C(leye)}/sizey`,  scale:(v)=>10+(v*90)},
+    reye:        {addr:`${C(reye)}/sizey`,  scale:(v)=>10+(v*90)},
+    squint:      {addr:`${C(leye)}/fx1action`, scale:(v)=>v*100},
+    wide:        {addr:`${C(leye)}/fx2action`, scale:(v)=>v*100},
+    // BROWS
+    browInnerUp: {addr:`${C(brows)}/fx1action`, scale:(v)=>v*100},
+    browOuterUp: {addr:`${C(brows)}/fx2action`, scale:(v)=>v*100},
+    browDown:    {addr:`${C(brows)}/fx3action`, scale:(v)=>v*100},
+    // Mirror eye squint/wide to right eye too (sent separately)
+    _squintR:    {addr:`${C(reye)}/fx1action`,  scale:(v)=>v*100, src:'squint'},
+    _wideR:      {addr:`${C(reye)}/fx2action`,  scale:(v)=>v*100, src:'wide'},
+  };
+}
+
+function updateAddrPreview(){
+  const map=getOSCMap();
+  const el=document.getElementById('addr-preview');
+  const entries=[
+    ['Yaw → angley',  map.yaw.addr],
+    ['Pitch → anglex',map.pitch.addr],
+    ['Roll → anglez', map.roll.addr],
+    ['Jaw → sizey',   map.jawOpen.addr],
+    ['Smile → fx1act',map.smile.addr],
+    ['L.Eye → sizey', map.leye.addr],
+    ['R.Eye → sizey', map.reye.addr],
+    ['Brow↑ → fx1act',map.browInnerUp.addr],
+  ];
+  el.innerHTML=entries.map(([l,a])=>
+    `<div class="osc-row"><span class="osc-lbl">${l}</span><span class="osc-addr">${a}</span></div>`
+  ).join('');
+}
+
+document.getElementById('btn-show-osc').addEventListener('click',()=>{
+  const p=document.getElementById('osc-addr-panel');
+  const vis=p.style.display==='flex';
+  p.style.display=vis?'none':'flex';
+  document.getElementById('btn-show-osc').textContent=vis?'▼ Show/Edit':'▲ Hide';
+  if(!vis) updateAddrPreview();
+});
+['cfg-zone','cfg-page','cfg-mouth','cfg-leye','cfg-reye','cfg-brows'].forEach(id=>{
+  document.getElementById(id).addEventListener('change',updateAddrPreview);
+});
+</script>
+
+<script type="module">
+import{FaceLandmarker,FilesetResolver,DrawingUtils}
+  from"https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.12/vision_bundle.mjs";
+
+const PARAMS=['yaw','pitch','roll','jawOpen','smile','frown','leye','reye',
+              'squint','wide','browInnerUp','browOuterUp','browDown','pucker','funnel','cheekPuff'];
+const PCOLS={yaw:'#4af',pitch:'#4af',roll:'#4af',jawOpen:'#fa4',smile:'#fa4',
+             frown:'#fa4',pucker:'#fa4',funnel:'#fa4',cheekPuff:'#fa4',
+             leye:'#4f8',reye:'#4f8',squint:'#4f8',wide:'#4f8',
+             browInnerUp:'#f8c',browOuterUp:'#f8c',browDown:'#f8c'};
+
+// CC map for MIDI fallback
+const CC_MAP={yaw:1,pitch:2,leye:3,reye:4,roll:5,smile:6,
+              browInnerUp:7,browDown:8,jawOpen:11,frown:12,
+              wide:13,squint:14,pucker:15,funnel:16,cheekPuff:17,browOuterUp:18};
+
+// EMA
+const EK=0.2,ES={};
+function ema(k,v){ES[k]=(ES[k]??v)+EK*(v-(ES[k]??v));return ES[k];}
+
+// ── WebSocket ─────────────────────────────────────────────────────────────────
+let ws=null;
+function connectOSC(){
+  const url=document.getElementById('osc-url').value.trim();
+  if(ws){ws.close();ws=null;}
+  ws=new WebSocket(url);
+  ws.onopen =()=>{bdg('osc-badge','OSC','g');sendWS({type:'tcMode',mode:tcMode(),fps:tcFPS(),host:tcHost()});}
+  ws.onclose=()=>{bdg('osc-badge','OSC','r');ws=null;}
+  ws.onerror=()=> bdg('osc-badge','OSC','r');
+  ws.onmessage=e=>{
+    const m=JSON.parse(e.data);
+    if(m.type==='tc'){showTC(m.timeMs);document.getElementById('tc-status').textContent='← rcv';}
+    if(m.type==='dataLoaded') st(`Bridge: ${m.frames} frames loaded`);
+  };
+}
+document.getElementById('btn-osc-connect').addEventListener('click',connectOSC);
+setTimeout(connectOSC,300);
+
+function sendWS(obj){if(ws?.readyState===1)ws.send(JSON.stringify(obj));}
+function tcMode(){return document.getElementById('tc-mode').value;}
+function tcFPS(){return parseFloat(document.getElementById('tc-fps').value)||30;}
+function tcHost(){return document.getElementById('tc-host').value.trim()||'2.255.255.255';}
+
+['tc-mode','tc-fps','tc-host'].forEach(id=>{
+  document.getElementById(id).addEventListener('change',()=>{
+    sendWS({type:'tcMode',mode:tcMode(),fps:tcFPS(),host:tcHost()});
+  });
+});
+
+// ── MIDI ──────────────────────────────────────────────────────────────────────
+let midiAccess=null,midiOut=null;
+async function initMIDI(){
+  if(!navigator.requestMIDIAccess)return;
+  midiAccess=await navigator.requestMIDIAccess();
+  const ref=()=>{
+    const sel=document.getElementById('midiOut'),prev=sel.value;sel.innerHTML='';
+    for(const[id,o]of midiAccess.outputs){
+      const x=document.createElement('option');x.value=id;x.textContent=o.name;sel.appendChild(x);
+    }
+    if(sel.options.length){
+      if([...midiAccess.outputs.keys()].includes(prev))sel.value=prev;
+      midiOut=midiAccess.outputs.get(sel.value)||null;bdg('midi-badge','MIDI','g');
+    }
+  };
+  midiAccess.onstatechange=ref;ref();
+}
+document.getElementById('midiOut').addEventListener('change',e=>{midiOut=midiAccess?.outputs.get(e.target.value)||null;});
+initMIDI();
+
+// ── OSC dispatch via bridge ───────────────────────────────────────────────────
+const lastSent={};
+const THRESH=0.004;
+
+function dispatchOSC(params, timeMs=null){
+  const oscMap = getOSCMap();
+  const out=[];
+
+  for(const[key,cfg]of Object.entries(oscMap)){
+    const srcKey = cfg.src || key;
+    const val = params[srcKey];
+    if(val===undefined) continue;
+    const scaled = cfg.scale(val);
+    const cacheKey = cfg.addr;
+    if(Math.abs(scaled-(lastSent[cacheKey]??-9999))>=THRESH*(cfg.addr.includes('angle')?1:1)){
+      lastSent[cacheKey]=scaled;
+      out.push({addr:cfg.addr, val:scaled});
+    }
+  }
+
+  if(out.length){
+    if(timeMs!==null) sendWS({type:'playback',timeMs,osc:out});
+    else sendWS({type:'oscBatch',osc:out});
+  }
+
+  // MIDI fallback
+  if(midiOut){
+    PARAMS.forEach(k=>{
+      const cc=CC_MAP[k]; if(!cc||params[k]===undefined)return;
+      midiOut.send([0xB0,cc,Math.max(0,Math.min(127,Math.round(params[k]*127)))]);
+    });
+  }
+}
+
+// ── TC display ────────────────────────────────────────────────────────────────
+function showTC(ms){
+  const fps=tcFPS();
+  const h=Math.floor(ms/3600000)%24,m=Math.floor(ms/60000)%60,
+        s=Math.floor(ms/1000)%60,f=Math.floor((ms%1000)/(1000/fps));
+  document.getElementById('tc-display').textContent=
+    `${p2(h)}:${p2(m)}:${p2(s)}:${p2(f)}`;
+}
+function p2(n){return String(Math.floor(n)).padStart(2,'0');}
+function bdg(id,lbl,cls){const e=document.getElementById(id);e.textContent=lbl;e.className='badge '+cls;}
+function st(t){document.getElementById('statusbar').textContent=t;}
+
+// ── Param grid ────────────────────────────────────────────────────────────────
+function buildPG(id){
+  const c=document.getElementById(id);c.innerHTML='';
+  PARAMS.forEach(n=>{
+    c.innerHTML+=`<div class="pg">
+      <div class="pgn">${n}<span style="color:#252525;font-size:8px"> CC${CC_MAP[n]||'—'}</span></div>
+      <div class="pgb"><div class="pgf" id="pf-${id}-${n}" style="background:${PCOLS[n]||'#4af'}"></div></div>
+      <div class="pgv" id="pv-${id}-${n}">0.00</div></div>`;
+  });
+}
+function updPG(id,p){
+  PARAMS.forEach(n=>{
+    const v=p[n]??0;
+    const f=document.getElementById(`pf-${id}-${n}`);
+    const ve=document.getElementById(`pv-${id}-${n}`);
+    if(f)f.style.width=(v*100).toFixed(0)+'%';
+    if(ve)ve.textContent=v.toFixed(2);
+  });
+}
+buildPG('pg-live');buildPG('pg-pb');
+
+document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
+  document.querySelectorAll('.panel').forEach(x=>x.classList.remove('on'));
+  t.classList.add('on');
+  document.getElementById('panel-'+t.dataset.p).classList.add('on');
+}));
+
+// ── MediaPipe ─────────────────────────────────────────────────────────────────
+let flV=null,flI=null;
+const canvasL=document.getElementById('canvas-live');
+const ctxL=canvasL.getContext('2d');
+const vidL=document.getElementById('vid-live-el');
+let drawU=null;
+const zero={yaw:0,pitch:0,roll:0};
+
+async function initMP(){
+  st('Loading MediaPipe model...');
+  const vis=await FilesetResolver.forVisionTasks(
+    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.12/wasm");
+  const MODEL="https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task";
+  const base={modelAssetPath:MODEL,delegate:'GPU'};
+  const opts={outputFaceBlendshapes:true,outputFacialTransformationMatrixes:true,numFaces:1};
+  flV=await FaceLandmarker.createFromOptions(vis,{baseOptions:base,runningMode:'VIDEO',...opts});
+  flI=await FaceLandmarker.createFromOptions(vis,{baseOptions:base,runningMode:'IMAGE',...opts});
+  drawU=new DrawingUtils(ctxL);
+  st('✓ Model ready.');
+}
+
+function euler(m){return{pitch:Math.asin(-m[9])*(180/Math.PI),yaw:Math.atan2(m[8],m[10])*(180/Math.PI),roll:Math.atan2(m[1],m[5])*(180/Math.PI)};}
+function bs2obj(cats){const r={};cats.forEach(c=>{r[c.categoryName]=c.score;});return r;}
+function c01(v){return Math.max(0,Math.min(1,v));}
+
+function extract(res,useZero=true){
+  if(!res.faceLandmarks?.length)return null;
+  const bs=bs2obj(res.faceBlendshapes[0].categories);
+  let y=0.5,p=0.5,r=0.5;
+  if(res.facialTransformationMatrixes?.length){
+    const eu=euler(res.facialTransformationMatrixes[0].data);
+    if(useZero){
+      y=c01(((eu.yaw-zero.yaw)/45+1)*0.5);
+      p=c01(((eu.pitch-zero.pitch)/30+1)*0.5);
+      r=c01(((eu.roll-zero.roll)/30+1)*0.5);
+    }else{y=c01(eu.yaw/90+0.5);p=c01(eu.pitch/60+0.5);r=c01(eu.roll/60+0.5);}
+  }
+  return{yaw:y,pitch:p,roll:r,
+    jawOpen:bs.jawOpen??0,
+    smile:((bs.mouthSmileLeft??0)+(bs.mouthSmileRight??0))/2,
+    frown:((bs.mouthFrownLeft??0)+(bs.mouthFrownRight??0))/2,
+    leye:1-(bs.eyeBlinkLeft??0),reye:1-(bs.eyeBlinkRight??0),
+    squint:((bs.eyeSquintLeft??0)+(bs.eyeSquintRight??0))/2,
+    wide:((bs.eyeWideLeft??0)+(bs.eyeWideRight??0))/2,
+    browInnerUp:bs.browInnerUp??0,
+    browOuterUp:((bs.browOuterUpLeft??0)+(bs.browOuterUpRight??0))/2,
+    browDown:((bs.browDownLeft??0)+(bs.browDownRight??0))/2,
+    pucker:bs.mouthPucker??0,funnel:bs.mouthFunnel??0,cheekPuff:bs.cheekPuff??0
+  };
+}
+
+// ── LIVE ──────────────────────────────────────────────────────────────────────
+let liveStream=null,liveRun=false,liveLast=-1;
+
+async function startLive(mode){
+  stopLive();
+  try{
+    liveStream=mode==='webcam'
+      ?await navigator.mediaDevices.getUserMedia({video:{width:640,height:360,facingMode:'user'}})
+      :await navigator.mediaDevices.getDisplayMedia({video:{cursor:'never'}});
+    vidL.srcObject=liveStream;
+    await new Promise(r=>vidL.addEventListener('loadeddata',r,{once:true}));
+    liveRun=true;
+    st(mode==='webcam'?'📷 Webcam live':'🖥 Window capture live');
+    liveLoop();
+  }catch(e){st('Error: '+e.message);}
+}
+function stopLive(){
+  liveRun=false;
+  if(liveStream){liveStream.getTracks().forEach(t=>t.stop());liveStream=null;}
+  document.getElementById('live-ovr').textContent='Idle';
+}
+
+function liveLoop(){
+  if(!liveRun||!flV) return requestAnimationFrame(liveLoop);
+  canvasL.width=vidL.videoWidth||640;canvasL.height=vidL.videoHeight||360;
+  ctxL.clearRect(0,0,canvasL.width,canvasL.height);
+  ctxL.drawImage(vidL,0,0,canvasL.width,canvasL.height);
+  if(vidL.currentTime===liveLast)return requestAnimationFrame(liveLoop);
+  liveLast=vidL.currentTime;
+  const res=flV.detectForVideo(vidL,performance.now());
+  if(res.faceLandmarks?.length){
+    drawU=new DrawingUtils(ctxL);
+    drawU.drawConnectors(res.faceLandmarks[0],FaceLandmarker.FACE_LANDMARKS_TESSELATION,{color:'#fff1',lineWidth:.5});
+    drawU.drawConnectors(res.faceLandmarks[0],FaceLandmarker.FACE_LANDMARKS_LEFT_EYE,{color:'#4af',lineWidth:1.5});
+    drawU.drawConnectors(res.faceLandmarks[0],FaceLandmarker.FACE_LANDMARKS_RIGHT_EYE,{color:'#4af',lineWidth:1.5});
+    drawU.drawConnectors(res.faceLandmarks[0],FaceLandmarker.FACE_LANDMARKS_LIPS,{color:'#fa4',lineWidth:1.5});
+    drawU.drawConnectors(res.faceLandmarks[0],FaceLandmarker.FACE_LANDMARKS_LEFT_EYEBROW,{color:'#f8c',lineWidth:1.5});
+    drawU.drawConnectors(res.faceLandmarks[0],FaceLandmarker.FACE_LANDMARKS_RIGHT_EYEBROW,{color:'#f8c',lineWidth:1.5});
+    const raw=extract(res);
+    if(raw){
+      const sm={};PARAMS.forEach(k=>{sm[k]=ema('L'+k,raw[k]);});
+      dispatchOSC(sm);updPG('pg-live',sm);
+      document.getElementById('live-ovr').textContent=
+        '✓ '+(ws?.readyState===1?'OSC':'MIDI');
+    }
+  }else{document.getElementById('live-ovr').textContent='👁 No face';}
+  requestAnimationFrame(liveLoop);
+}
+
+document.getElementById('btn-webcam').addEventListener('click',()=>startLive('webcam'));
+document.getElementById('btn-capture').addEventListener('click',()=>startLive('capture'));
+document.getElementById('btn-stop-live').addEventListener('click',stopLive);
+
+// ── PROCESS ───────────────────────────────────────────────────────────────────
+let procFrames=null,procTriggers=[],procRun=false;
+
+document.getElementById('video-file').addEventListener('change',e=>{
+  const f=e.target.files[0];if(!f)return;
+  const vp=document.getElementById('video-proc');
+  vp.src=URL.createObjectURL(f);vp.style.display='block';
+  st('Loaded: '+f.name);
+});
+
+document.getElementById('btn-process').addEventListener('click',async()=>{
+  const vp=document.getElementById('video-proc');
+  if(!vp.src||!flI){st('Load a video file first');return;}
+  procRun=true;procFrames=[];
+  document.getElementById('btn-process').disabled=true;
+  document.getElementById('btn-stop-proc').style.display='';
+  document.getElementById('btn-export').disabled=true;
+  document.getElementById('btn-upload').disabled=true;
+  const fps=+document.getElementById('proc-fps').value||30;
+  const step=1/fps,dur=vp.duration;
+  st(`Processing ${dur.toFixed(1)}s @ ${fps}fps...`);
+  let t=0;
+  while(t<=dur&&procRun){
+    vp.currentTime=t;
+    await new Promise(r=>{vp.onseeked=r;});
+    const res=flI.detect(vp);
+    const raw=extract(res,false);
+    if(raw)procFrames.push({timeMs:Math.round(t*1000),...raw});
+    const pct=(t/dur*100).toFixed(1);
+    document.getElementById('proc-pf').style.width=pct+'%';
+    document.getElementById('proc-pl').textContent=`${pct}%  —  ${procFrames.length} frames  —  ${t.toFixed(2)}s`;
+    t+=step;
+    if(Math.round(t/step)%20===0)await new Promise(r=>setTimeout(r,0));
+  }
+  document.getElementById('btn-process').disabled=false;
+  document.getElementById('btn-stop-proc').style.display='none';
+  document.getElementById('btn-export').disabled=false;
+  document.getElementById('btn-upload').disabled=false;
+  document.getElementById('proc-stats').textContent=`${procFrames.length} frames, ${dur.toFixed(1)}s`;
+  st(`✓ Done. ${procFrames.length} frames. Add triggers, then export.`);
+  procRun=false;
+});
+document.getElementById('btn-stop-proc').addEventListener('click',()=>{procRun=false;});
+
+function renderTriggers(){
+  const el=document.getElementById('trigger-list');el.innerHTML='';
+  procTriggers.forEach((tr,i)=>{
+    const row=document.createElement('div');row.className='tr-row row';
+    row.innerHTML=`
+      <input type="number" value="${tr.timeMs}" style="width:72px" placeholder="ms" data-i="${i}" data-f="t">
+      <span style="font-size:10px;color:#444">ms</span>
+      <input type="text" value="${tr.address}" style="flex:1;min-width:220px" placeholder="/beyond/general/StartCue" data-i="${i}" data-f="a">
+      <button data-del="${i}" style="padding:2px 8px;font-size:10px;color:#f44;border-color:#f44;background:#1a0a0a">✕</button>`;
+    el.appendChild(row);
+  });
+  el.querySelectorAll('input').forEach(inp=>inp.addEventListener('change',e=>{
+    const i=+e.target.dataset.i;
+    if(e.target.dataset.f==='t')procTriggers[i].timeMs=+e.target.value;
+    if(e.target.dataset.f==='a')procTriggers[i].address=e.target.value;
+  }));
+  el.querySelectorAll('[data-del]').forEach(b=>b.addEventListener('click',e=>{
+    procTriggers.splice(+e.target.dataset.del,1);renderTriggers();
+  }));
+}
+
+document.getElementById('btn-add-tr').addEventListener('click',()=>{
+  procTriggers.push({timeMs:0,address:'/beyond/general/StartCue',args:['MOUTH']});renderTriggers();
+});
+document.getElementById('btn-auto-tr').addEventListener('click',()=>{
+  const page=parseInt(document.getElementById('cfg-page').value)||0;
+  const cues=[
+    parseInt(document.getElementById('cfg-mouth').value)||0,
+    parseInt(document.getElementById('cfg-leye').value)||1,
+    parseInt(document.getElementById('cfg-reye').value)||2,
+    parseInt(document.getElementById('cfg-brows').value)||3,
+  ];
+  procTriggers=cues.map(ci=>({
+    timeMs:0,
+    address:`/beyond/general/CueDown`,
+    args:[page,ci]
+  }));
+  renderTriggers();st('Auto triggers: CueDown for all face cues at t=0');
+});
+
+function buildJSON(){
+  return{
+    meta:{fps:+document.getElementById('proc-fps').value||30,
+          durationMs:procFrames?.[procFrames.length-1]?.timeMs||0},
+    triggers:procTriggers,
+    frames:procFrames||[]
+  };
+}
+document.getElementById('btn-export').addEventListener('click',()=>{
+  if(!procFrames)return;
+  const blob=new Blob([JSON.stringify(buildJSON(),null,0)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='face-data.json';a.click();
+  st('Downloaded face-data.json');
+});
+document.getElementById('btn-upload').addEventListener('click',()=>{
+  if(!procFrames||ws?.readyState!==1){st('Not connected to bridge');return;}
+  sendWS({type:'loadData',data:buildJSON()});st('Sent to bridge.');
+});
+
+// ── PLAYBACK — uses Web Worker for smooth off-thread timer ────────────────────
+let pbData=null,worker=null;
+
+document.getElementById('data-file').addEventListener('change',e=>{
+  const f=e.target.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    pbData=JSON.parse(ev.target.result);
+    const dur=(pbData.frames[pbData.frames.length-1].timeMs/1000).toFixed(1);
+    document.getElementById('data-info').textContent=
+      `${pbData.frames.length} frames · ${dur}s · ${pbData.triggers?.length||0} triggers`;
+    document.getElementById('btn-play').disabled=false;
+    document.getElementById('btn-play-now').disabled=false;
+    if(ws?.readyState===1){sendWS({type:'loadData',data:pbData});st(`Loaded + sent to bridge: ${pbData.frames.length} frames`);}
+    else st(`Loaded: ${pbData.frames.length} frames`);
+  };
+  r.readAsText(f);
+});
+
+async function startPB(cd){
+  if(!pbData)return;
+  if(cd>0){
+    document.getElementById('countdown').style.display='block';
+    for(let i=cd;i>0;i--){
+      document.getElementById('countdown').textContent=i;
+      await new Promise(r=>setTimeout(r,1000));
+    }
+    document.getElementById('countdown').style.display='none';
+  }
+
+  // Send TC config to bridge before starting
+  sendWS({type:'tcMode',mode:tcMode(),fps:tcFPS(),host:tcHost()});
+
+  // Spin up Web Worker
+  if(worker) worker.terminate();
+  worker=new Worker('playback-worker.js');
+
+  worker.onmessage=e=>{
+    const m=e.data;
+    switch(m.type){
+      case 'frame':
+        dispatchOSC(m.params, m.timeMs);
+        updPG('pg-pb', m.params);
+        showTC(m.timeMs);
+        // Send ArtNet TC via bridge
+        if(tcMode()==='send') sendWS({type:'sendTC', timeMs:m.timeMs, fps:tcFPS(), host:tcHost()});
+        break;
+      case 'trigger':
+        sendWS({type:'trigger',address:m.address,args:m.args});
+        st(`Trigger: ${m.address}`);
+        break;
+      case 'progress':
+        const pct=Math.min(100,m.elapsed/m.total*100).toFixed(1);
+        document.getElementById('pb-pf').style.width=pct+'%';
+        document.getElementById('pb-pl').textContent=
+          `${(m.elapsed/1000).toFixed(2)}s / ${(m.total/1000).toFixed(2)}s`;
+        break;
+      case 'done':
+        document.getElementById('btn-stop-pb').style.display='none';
+        document.getElementById('tc-status').textContent='done';
+        st('✓ Playback complete');
+        break;
+    }
+  };
+
+  worker.postMessage({
+    type:'start',
+    frames: pbData.frames,
+    triggers: pbData.triggers||[],
+    sendTC: tcMode()==='send'
+  });
+
+  document.getElementById('btn-stop-pb').style.display='';
+  document.getElementById('tc-status').textContent='sending ▶';
+  st('▶ Playing — ArtNet TC + OSC streaming...');
+}
+
+function stopPB(){
+  if(worker){worker.postMessage({type:'stop'});worker.terminate();worker=null;}
+  document.getElementById('btn-stop-pb').style.display='none';
+  document.getElementById('tc-status').textContent='stopped';
+  st('Stopped.');
+}
+
+document.getElementById('btn-play').addEventListener('click',()=>startPB(+document.getElementById('cd-secs').value||3));
+document.getElementById('btn-play-now').addEventListener('click',()=>startPB(0));
+document.getElementById('btn-stop-pb').addEventListener('click',stopPB);
+
+initMP();
+</script>
+</body>
+</html>

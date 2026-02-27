@@ -1,0 +1,13 @@
+{
+  "name": "face-osc-bridge",
+  "version": "4.0.0",
+  "description": "WebSocket → OSC UDP + ArtNet TC bridge for MediaPipe face puppet → Pangolin Beyond",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "node-osc": "^9.0.0",
+    "ws": "^8.18.0"
+  }
+}
